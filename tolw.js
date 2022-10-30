@@ -686,6 +686,17 @@ function createWasm(env) {
     if (!wasmBinary && typeof WebAssembly.instantiateStreaming === "function" && !isDataURI(wasmBinaryFile) && typeof fetch === "function") {
       fetch(wasmBinaryFile, {
         credentials: "same-origin"
+      }).catch(function (error) {
+        const shouldTryToWorkAroundFetchNotBeingAbleToLoadLocalFiles = (
+          error.cause.stack.includes("unknown scheme") &&
+          typeof fs !== "undefined"
+        )
+
+        if (shouldTryToWorkAroundFetchNotBeingAbleToLoadLocalFiles) {
+          return fs.readFileSync(wasmBinaryFile)
+        }
+
+        throw error
       }).then(function(response) {
         var result = WebAssembly.instantiateStreaming(response, info);
         return result.then(receiveInstantiatedSource, function(reason) {
